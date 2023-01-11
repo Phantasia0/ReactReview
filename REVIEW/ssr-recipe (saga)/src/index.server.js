@@ -4,13 +4,13 @@ import { StaticRouter } from "react-router-dom/server";
 import App from "./App";
 import path from "path";
 import fs from "fs";
-
 import { createStore, applyMiddleware } from "redux";
-import { Provider } from "react-redux";
 import thunk from "redux-thunk";
-import rootReducer from "./modules";
-
+import { Provider } from "react-redux";
+import createSagaMiddleware from "redux-saga";
+import rootReducer, { rootSaga } from "./modules";
 import PreloadContext from "./lib/PreloadContext";
+import { END } from "redux-saga";
 
 const manifest = JSON.parse(
   fs.readFileSync(path.resolve("./build/asset-manifest.json"), "utf8")
@@ -21,7 +21,7 @@ const chunks = Object.keys(manifest.files)
   .map((key) => `<script src="${manifest.files[key]}"></script>`)
   .join("");
 
-function createPage(root, stateScript) {
+function createPage(root) {
   return `<!DOCTYPE html>
       <html lang="en">
       <head>
@@ -40,7 +40,6 @@ function createPage(root, stateScript) {
         <div id="root">
           ${root}
         </div>
-        ${stateScript}
         <script src="${manifest.files["runtime-main.js"]}"></script>
         ${chunks}
         <script src="${manifest.files["main.js"]}"></script>
@@ -53,7 +52,13 @@ const app = express();
 
 const serverRender = async (req, res, next) => {
   const context = {};
-  const store = createStore(rootReducer, applyMiddleware(thunk));
+  const sagaMiddleware = createSagaMiddleware();
+  const store = createStore(
+    rootReducer,
+    applyMiddleware(thunk, sagaMiddleware)
+  );
+
+  const sagaPromise = sagaMiddleware.run(rootSaga).toPromise();
 
   const preloadContext = {
     done: false,
@@ -69,18 +74,18 @@ const serverRender = async (req, res, next) => {
       </Provider>
     </PreloadContext.Provider>
   );
-  ReactDOMServer.renderToStaticMarkup(jsx);
 
+  ReactDOMServer.renderToStaticMarkup(jsx);
+  store.dispatch(END);
   try {
+    await sagaPromise;
     await Promise.all(preloadContext.promises);
   } catch (e) {
     return res.status(500);
   }
-
   preloadContext.done = true;
 
   const root = ReactDOMServer.renderToString(jsx);
-
   const stateString = JSON.stringify(store.getState()).replace(/</g, "\\u003c");
   const stateScript = `<script>__PRELOADED_STATE__ = ${stateString}</script> `;
 
