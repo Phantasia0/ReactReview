@@ -70,7 +70,12 @@ const RegisterForm = () => {
 
   useEffect(() => {
     if (user) {
-      navigate('/'); //홈화면으로 이동
+      navigate('/');
+      try {
+        localStorage.setItem('user', JSON.stringify(user));
+      } catch (e) {
+        console.log('localStorage is not working');
+      }
     }
   }, [navigate, user]);
 
