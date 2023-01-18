@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from 'styled-components';
 import qs from 'qs';
 import Button from '../common/Button';
@@ -9,12 +10,11 @@ const PaginationBlock = styled.div`
   justify-content: space-between;
   margin-bottom: 3rem;
 `;
-
 const PageNumber = styled.div``;
 
 const buildLink = ({ username, tag, page }) => {
   const query = qs.stringify({ tag, page });
-  return username ? `/${username}?${query}` : `/?${query}`;
+  return username ? `/@${username}?${query}` : `/?${query}`;
 };
 
 const Pagination = ({ page, lastPage, username, tag }) => {
