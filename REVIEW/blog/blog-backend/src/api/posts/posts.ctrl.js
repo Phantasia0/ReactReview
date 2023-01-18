@@ -111,7 +111,6 @@ export const list = async (ctx) => {
   // query 는 문자열이기 때문에 숫자로 변환해주어야합니다.
   // 값이 주어지지 않았다면 1 을 기본으로 사용합니다.
   const page = parseInt(ctx.query.page || '1', 10);
-
   if (page < 1) {
     ctx.status = 400;
     return;
@@ -132,6 +131,9 @@ export const list = async (ctx) => {
       .lean()
       .exec();
     const postCount = await Post.countDocuments(query).exec();
+    if (postCount === 0) {
+      ctx.body = null;
+    }
     ctx.set('Last-Page', Math.ceil(postCount / 10));
     ctx.body = posts.map((post) => ({
       ...post,
