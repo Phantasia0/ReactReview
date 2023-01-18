@@ -9,7 +9,7 @@ const AuthTemplateBlock = styled.div`
   bottom: 0;
   right: 0;
   background: ${palette.gray[2]};
-  /* flex로 내부 내용 중앙 정렬 */
+
   display: flex;
   flex-direction: column;
   justify-content: center;
